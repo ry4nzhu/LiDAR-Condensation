@@ -1,6 +1,8 @@
 import mayavi.mlab as mlab
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
+
 
 box_colormap = [
     [1, 1, 1],
@@ -213,3 +215,6 @@ def draw_corners3d(corners3d, fig, color=(1, 1, 1), line_width=2, cls=None, tag=
                     line_width=line_width, figure=fig)
 
     return fig
+
+
+

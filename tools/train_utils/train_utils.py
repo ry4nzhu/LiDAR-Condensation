@@ -6,13 +6,16 @@ import tqdm
 import time
 from torch.nn.utils import clip_grad_norm_
 from pcdet.utils import common_utils, commu_utils
+from .TrainingLogger import TrainingDynamicsLogger
 
 
 def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, accumulated_iter, optim_cfg,
-                    rank, tbar, total_it_each_epoch, dataloader_iter, tb_log=None, leave_pbar=False):
+                    rank, tbar, total_it_each_epoch, dataloader_iter, tb_log=None, leave_pbar=False, curr_epoch=0, TD_logger=None):
     if total_it_each_epoch == len(train_loader):
         dataloader_iter = iter(train_loader)
 
+
+    print("total iteration each epoch", total_it_each_epoch)
     if rank == 0:
         pbar = tqdm.tqdm(total=total_it_each_epoch, leave=leave_pbar, desc='train', dynamic_ncols=True)
         data_time = common_utils.AverageMeter()
@@ -28,6 +31,8 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
             batch = next(dataloader_iter)
             print('new iters')
         
+        # keys of each batch
+        # ['frame_id', 'gt_boxes', 'points', 'use_lead_xyz', 'voxels', 'voxel_coords', 'voxel_num_points', 'image_shape', 'batch_size'] 
         data_timer = time.time()
         cur_data_time = data_timer - end
 
@@ -45,6 +50,21 @@ def train_one_epoch(model, optimizer, train_loader, model_func, lr_scheduler, ac
         optimizer.zero_grad()
 
         loss, tb_dict, disp_dict = model_func(model, batch)
+
+        # print(batch['frame_id'], batch['batch_size'], tb_dict)
+        # # NOTE: for fast instrumentation currently assume batch size to be 1
+        if TD_logger is not None:
+            log_tuple = {
+                    'epoch': curr_epoch,
+                    'gt_bboxes': batch['gt_boxes'],
+                    'index': batch['frame_id'][0],
+                    'loss': loss.item(),
+                    'loss_cls': tb_dict['rpn_loss_cls'],
+                    'loss_loc': tb_dict['rpn_loss_loc'],
+                    'loss_dir': tb_dict['rpn_loss_dir']
+            }
+            # print(log_tuple)
+            TD_logger.log_tuple(log_tuple)
 
         forward_timer = time.time()
         cur_forward_time = forward_timer - data_timer
@@ -91,6 +111,7 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
                 lr_warmup_scheduler=None, ckpt_save_interval=1, max_ckpt_save_num=50,
                 merge_all_iters_to_one_epoch=False):
     accumulated_iter = start_iter
+    TD_logger = TrainingDynamicsLogger()
     with tqdm.trange(start_epoch, total_epochs, desc='epochs', dynamic_ncols=True, leave=(rank == 0)) as tbar:
         total_it_each_epoch = len(train_loader)
         if merge_all_iters_to_one_epoch:
@@ -115,7 +136,9 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
                 rank=rank, tbar=tbar, tb_log=tb_log,
                 leave_pbar=(cur_epoch + 1 == total_epochs),
                 total_it_each_epoch=total_it_each_epoch,
-                dataloader_iter=dataloader_iter
+                dataloader_iter=dataloader_iter,
+                curr_epoch=cur_epoch,
+                TD_logger=TD_logger
             )
 
             # save trained model
@@ -133,7 +156,7 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
                 save_checkpoint(
                     checkpoint_state(model, optimizer, trained_epoch, accumulated_iter), filename=ckpt_name,
                 )
-
+    TD_logger.save_training_dynamics("./td.pickle", "training_loss")
 
 def model_state_to_cpu(model_state):
     model_state_cpu = type(model_state)()  # ordered dict
