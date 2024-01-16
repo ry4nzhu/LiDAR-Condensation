@@ -101,6 +101,8 @@ class AnchorHeadTemplate(nn.Module):
     def get_cls_layer_loss(self):
         cls_preds = self.forward_ret_dict['cls_preds']
         box_cls_labels = self.forward_ret_dict['box_cls_labels']
+        print("class prediction", cls_preds.shape, box_cls_labels.shape, torch.unique(box_cls_labels))
+
         batch_size = int(cls_preds.shape[0])
         cared = box_cls_labels >= 0  # [N, num_anchors]
         positives = box_cls_labels > 0
@@ -124,6 +126,8 @@ class AnchorHeadTemplate(nn.Module):
         )
         one_hot_targets.scatter_(-1, cls_targets.unsqueeze(dim=-1).long(), 1.0)
         cls_preds = cls_preds.view(batch_size, -1, self.num_class)
+        print(cared.shape, positives.shape, cls_preds.shape, one_hot_targets.shape, positives[:, 0])
+        print("loss", cls_preds[0][0], one_hot_targets[0][0], type(self.cls_loss_func), cls_weights.shape)
         one_hot_targets = one_hot_targets[..., 1:]
         cls_loss_src = self.cls_loss_func(cls_preds, one_hot_targets, weights=cls_weights)  # [N, M]
         cls_loss = cls_loss_src.sum() / batch_size
@@ -166,6 +170,7 @@ class AnchorHeadTemplate(nn.Module):
         box_cls_labels = self.forward_ret_dict['box_cls_labels']
         batch_size = int(box_preds.shape[0])
 
+        print("loss labels", box_cls_labels.shape)
         positives = box_cls_labels > 0
         reg_weights = positives.float()
         pos_normalizer = positives.sum(1, keepdim=True).float()

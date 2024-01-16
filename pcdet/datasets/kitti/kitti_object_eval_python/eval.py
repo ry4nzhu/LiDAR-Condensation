@@ -4,7 +4,7 @@ import numba
 import numpy as np
 
 from .rotate_iou import rotate_iou_gpu_eval
-
+import json
 
 @numba.jit
 def get_thresholds(scores: np.ndarray, num_gt, num_sample_pts=41):
@@ -480,6 +480,7 @@ def eval_class(gt_annos,
         [num_class, num_difficulty, num_minoverlap, N_SAMPLE_PTS])
     recall = np.zeros(
         [num_class, num_difficulty, num_minoverlap, N_SAMPLE_PTS])
+
     aos = np.zeros([num_class, num_difficulty, num_minoverlap, N_SAMPLE_PTS])
     for m, current_class in enumerate(current_classes):
         for l, difficulty in enumerate(difficultys):
@@ -550,6 +551,8 @@ def eval_class(gt_annos,
         "precision": precision,
         "orientation": aos,
     }
+    
+    # print("returned dict is", ret_dict)
     return ret_dict
 
 
@@ -611,6 +614,8 @@ def do_eval(gt_annos,
 
     ret = eval_class(gt_annos, dt_annos, current_classes, difficultys, 2,
                      min_overlaps)
+
+    np.save("pr_details_3d.npy", ret)
     mAP_3d = get_mAP(ret["precision"])
     mAP_3d_R40 = get_mAP_R40(ret["precision"])
     if PR_detail_dict is not None:
@@ -662,6 +667,7 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, PR_detail_dict
         else:
             current_classes_int.append(curcls)
     current_classes = current_classes_int
+    # print("current classes", current_classes, PR_detail_dict)
     min_overlaps = min_overlaps[:, :, current_classes]
     result = ''
     # check whether alpha is valid
@@ -674,6 +680,9 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, PR_detail_dict
     mAPbbox, mAPbev, mAP3d, mAPaos, mAPbbox_R40, mAPbev_R40, mAP3d_R40, mAPaos_R40 = do_eval(
         gt_annos, dt_annos, current_classes, min_overlaps, compute_aos, PR_detail_dict=PR_detail_dict)
 
+    # print("result dict", PR_detail_dict.keys(), PR_detail_dict['bbox'].shape)
+    # json.dump(PR_detail_dict, open('PR_detail_dict.json', 'w'))
+    np.save('PR_detail_dict.npy', PR_detail_dict)
     ret_dict = {}
     for j, curcls in enumerate(current_classes):
         # mAP threshold array: [num_minoverlap, metric, class]

@@ -26,3 +26,6 @@ class LinearLossMapRanking():
     def get_downsample_percentage_ranking(self, loss_rank):
         return self.downsample_ratio[loss_rank - self.min_rank]
 
+
+    def get_downsample_percentage_ranking_rev(self, loss_rank):
+        return self.downsample_ratio[self.max_rank - loss_rank - 1]

@@ -65,7 +65,8 @@ def object_downsample_loss_rank(data_root, loss_map, td_logs, training_ids):
         obj_points, non_obj_points = seperate_obj_points(pcd, boxes_velo, objs_type)
 
         self_loss = td_logs[id][0]
-        downsample_ratio = loss_map.get_downsample_percentage_ranking(idx)
+        # downsample_ratio = loss_map.get_downsample_percentage_ranking(idx)
+        downsample_ratio = loss_map.get_downsample_percentage_ranking_rev(idx)
         print(self_loss, downsample_ratio)
 
         ## remove non-pedestrian, cyclist points
@@ -116,6 +117,6 @@ if __name__ == "__main__":
     # )
 
     object_downsample_loss_rank(
-        "/y/datasets/kitti-downsample/KITTI-0.8-loss-obj-rank/",
+        "/y/datasets/kitti-downsample/KITTI-0.8-loss-obj-rank-rev/",
         linearLossMapRanking, td_loss, training_sample_ids
     )

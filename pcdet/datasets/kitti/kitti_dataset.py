@@ -201,6 +201,7 @@ class KittiDataset(DatasetTemplate):
 
                 if count_inside_pts:
                     points = self.get_lidar(sample_idx)
+                    print(sample_idx, points.shape)
                     calib = self.get_calib(sample_idx)
                     pts_rect = calib.lidar_to_rect(points[:, 0:3])
 
@@ -358,7 +359,8 @@ class KittiDataset(DatasetTemplate):
 
         eval_det_annos = copy.deepcopy(det_annos)
         eval_gt_annos = [copy.deepcopy(info['annos']) for info in self.kitti_infos]
-        ap_result_str, ap_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)
+        PR_detail_dict = {}
+        ap_result_str, ap_dict = kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names, PR_detail_dict)
 
         return ap_result_str, ap_dict
 
@@ -474,10 +476,18 @@ if __name__ == '__main__':
         from pathlib import Path
         from easydict import EasyDict
         dataset_cfg = EasyDict(yaml.safe_load(open(sys.argv[2])))
-        ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
+        ROOT_DIR = Path(dataset_cfg['DATA_PATH'])
+        # print(ROOT_DIR, type(ROOT_DIR))
         create_kitti_infos(
             dataset_cfg=dataset_cfg,
             class_names=['Car', 'Pedestrian', 'Cyclist'],
-            data_path=ROOT_DIR / 'data' / 'kitti',
-            save_path=ROOT_DIR / 'data' / 'kitti'
+            data_path=ROOT_DIR,
+            save_path=ROOT_DIR
         )
+        # ROOT_DIR = (Path(__file__).resolve().parent / '../../../').resolve()
+        # create_kitti_infos(
+        #     dataset_cfg=dataset_cfg,
+        #     class_names=['Car', 'Pedestrian', 'Cyclist'],
+        #     data_path=ROOT_DIR / 'data' / 'kitti',
+        #     save_path=ROOT_DIR / 'data' / 'kitti'
+        # )

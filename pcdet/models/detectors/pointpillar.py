@@ -9,10 +9,17 @@ class PointPillar(Detector3DTemplate):
     def forward(self, batch_dict):
         for cur_module in self.module_list:
             batch_dict = cur_module(batch_dict)
+        
+        # print("batch_dict", batch_dict['pillar_features'].shape, 
+        #         batch_dict['spatial_features'].shape,
+        #         batch_dict['spatial_features_2d'].shape)
 
         if self.training:
             loss, tb_dict, disp_dict = self.get_training_loss()
 
+            
+            # pred_dicts, recall_dicts = self.post_processing(batch_dict)
+            # print("training", loss, tb_dict)
             ret_dict = {
                 'loss': loss
             }
@@ -25,7 +32,7 @@ class PointPillar(Detector3DTemplate):
         disp_dict = {}
 
         loss_rpn, tb_dict = self.dense_head.get_loss()
-        # print("dense head", type(self.dense_head))
+        # print("dense head", type(self.dense_head)) 
         tb_dict = {
             'loss_rpn': loss_rpn.item(),
             **tb_dict
