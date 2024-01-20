@@ -1,5 +1,35 @@
 <img src="docs/open_mmlab.png" align="right" width="30%">
 
+## Condensation dataset generation step
+
+### Dataset generation
+#### Random
+
+```
+cd tools
+python kitti_downsample.py
+```
+
+#### Object (Pedestrian + Cyclist) Based
+
+```
+cd tools
+python downsample_map.py
+```
+
+### Generate prepared dataset
+```
+python -m pcdet.datasets.kitti.kitti_dataset create_kitti_infos cfgs/dataset_configs/kitti_dataset-0.8.yaml
+```
+
+### Train
+
+```
+python train.py --cfg_file cfgs/kitti_models/pointpillar-rand-0.8.yaml
+```
+
+
+
 # OpenPCDet
 
 `OpenPCDet` is a clear, simple, self-contained open source project for LiDAR-based 3D object detection. 
