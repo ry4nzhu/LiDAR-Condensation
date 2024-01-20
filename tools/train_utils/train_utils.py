@@ -112,6 +112,7 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
                 merge_all_iters_to_one_epoch=False):
     accumulated_iter = start_iter
     TD_logger = TrainingDynamicsLogger()
+    TD_logger = None
     with tqdm.trange(start_epoch, total_epochs, desc='epochs', dynamic_ncols=True, leave=(rank == 0)) as tbar:
         total_it_each_epoch = len(train_loader)
         if merge_all_iters_to_one_epoch:
@@ -156,7 +157,8 @@ def train_model(model, optimizer, train_loader, model_func, lr_scheduler, optim_
                 save_checkpoint(
                     checkpoint_state(model, optimizer, trained_epoch, accumulated_iter), filename=ckpt_name,
                 )
-    TD_logger.save_training_dynamics("./td.pickle", "training_loss")
+    if TD_logger is not None:
+        TD_logger.save_training_dynamics("./td.pickle", "training_loss")
 
 def model_state_to_cpu(model_state):
     model_state_cpu = type(model_state)()  # ordered dict
