@@ -19,7 +19,8 @@ def random_downsample_loss(data_root, loss_map, td_logs, training_ids):
         self_loss = td_logs[id][0]
         downsample_ratio = loss_map.get_downsample_percentage(self_loss)
         print(self_loss, downsample_ratio)
-        random_indices = np.random.randint(pcd.shape[0], size=int(pcd.shape[0] * (1 - downsample_ratio)))
+        # random_indices = np.random.randint(pcd.shape[0], size=int(pcd.shape[0] * (1 - downsample_ratio)))
+        random_indices = np.random.choice(pcd.shape[0], size=int(pcd.shape[0] * (1 - downsample_ratio)), replace=False)
         pcd_new = np.copy(pcd[random_indices])
         print(pcd.shape, pcd_new.shape)
         original_size.append(pcd.shape[0])
@@ -39,7 +40,8 @@ def random_downsample_loss_rank(data_root, loss_map, td_logs, training_ids):
         self_loss = td_logs[id][0]
         downsample_ratio = loss_map.get_downsample_percentage_ranking(idx)
         print(self_loss, downsample_ratio)
-        random_indices = np.random.randint(pcd.shape[0], size=int(pcd.shape[0] * (1 - downsample_ratio)))
+        # random_indices = np.random.randint(pcd.shape[0], size=int(pcd.shape[0] * (1 - downsample_ratio)))
+        random_indices = np.random.choice(pcd.shape[0], size=int(pcd.shape[0] * (1 - downsample_ratio)), replace=False)
         pcd_new = np.copy(pcd[random_indices])
         print(pcd.shape, pcd_new.shape)
         original_size.append(pcd.shape[0])
@@ -77,14 +79,15 @@ def object_downsample_loss_rank(data_root, loss_map, td_logs, training_ids):
         else:
             remaining_target_point_num = downsampled_shape
         if remaining_target_point_num > 0:
-            random_indices = np.random.randint(non_obj_points.shape[0], size=remaining_target_point_num)
+            # random_indices = np.random.randint(non_obj_points.shape[0], size=remaining_target_point_num)
+            random_indices = np.random.choice(non_obj_points.shape[0], size=remaining_target_point_num, replace=False)
             points_remain = non_obj_points[random_indices]
         else:
-            random_indices = np.random.randint(obj_points.shape[0], size=downsampled_shape)
+            # random_indices = np.random.randint(obj_points.shape[0], size=downsampled_shape)
+            random_indices = np.random.choice(obj_points.shape[0], size=downsampled_shape, replace=False)
             obj_points = obj_points[random_indices]
         if points_remain is not None:
             obj_points = np.vstack([obj_points, points_remain])
-        # random_indices = np.random.randint(pcd.shape[0], size=downsampled_shape)
         pcd_new = np.vstack(obj_points)
         print(pcd.shape, pcd_new.shape)
         original_size.append(pcd.shape[0])
