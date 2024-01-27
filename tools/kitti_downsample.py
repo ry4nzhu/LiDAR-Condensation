@@ -44,7 +44,8 @@ def random_downsample(ratio=0.8):
             # print(train_id, type(train_id))
             train_file = os.path.join(train_file_path, "%06d.bin" % int(train_id))
             pcd = np.fromfile(train_file, dtype=np.float32).reshape(-1, 4)
-            random_indices = np.random.randint(pcd.shape[0], size=int(ratio*pcd.shape[0]))
+            # random_indices = np.random.randint(pcd.shape[0], size=int(ratio*pcd.shape[0]))
+            random_indices = np.random.choice(pcd.shape[0], size=int(ratio*pcd.shape[0]), replace=False)
             print(random_indices.shape)
             pcd_new = np.copy(pcd)
             pcd_new = pcd_new[random_indices]
@@ -57,43 +58,43 @@ def random_downsample(ratio=0.8):
 
 
 
-def build_data_cfg(config_path, aug):
-    """Build data config for loading visualization data."""
+# def build_data_cfg(config_path, aug):
+#     """Build data config for loading visualization data."""
 
-    cfg = Config.fromfile(config_path)
-    # if cfg_options is not None:
-    #     cfg.merge_from_dict(cfg_options)
+#     cfg = Config.fromfile(config_path)
+#     # if cfg_options is not None:
+#     #     cfg.merge_from_dict(cfg_options)
 
-    # extract inner dataset of `RepeatDataset` as
-    # `cfg.train_dataloader.dataset` so we don't
-    # need to worry about it later
-    if cfg.train_dataloader.dataset['type'] == 'RepeatDataset':
-        cfg.train_dataloader.dataset = cfg.train_dataloader.dataset.dataset
-    # use only first dataset for `ConcatDataset`
-    if cfg.train_dataloader.dataset['type'] == 'ConcatDataset':
-        cfg.train_dataloader.dataset = cfg.train_dataloader.dataset.datasets[0]
-    if cfg.train_dataloader.dataset['type'] == 'CBGSDataset':
-        cfg.train_dataloader.dataset = cfg.train_dataloader.dataset.dataset
+#     # extract inner dataset of `RepeatDataset` as
+#     # `cfg.train_dataloader.dataset` so we don't
+#     # need to worry about it later
+#     if cfg.train_dataloader.dataset['type'] == 'RepeatDataset':
+#         cfg.train_dataloader.dataset = cfg.train_dataloader.dataset.dataset
+#     # use only first dataset for `ConcatDataset`
+#     if cfg.train_dataloader.dataset['type'] == 'ConcatDataset':
+#         cfg.train_dataloader.dataset = cfg.train_dataloader.dataset.datasets[0]
+#     if cfg.train_dataloader.dataset['type'] == 'CBGSDataset':
+#         cfg.train_dataloader.dataset = cfg.train_dataloader.dataset.dataset
 
-    train_data_cfg = cfg.train_dataloader.dataset
+#     train_data_cfg = cfg.train_dataloader.dataset
 
-    if aug:
-        show_pipeline = cfg.train_pipeline
-    else:
-        show_pipeline = cfg.test_pipeline
-        for i in range(len(cfg.train_pipeline)):
-            if cfg.train_pipeline[i]['type'] == 'LoadAnnotations3D':
-                show_pipeline.insert(i, cfg.train_pipeline[i])
-            # Collect data as well as labels
-            if cfg.train_pipeline[i]['type'] == 'Pack3DDetInputs':
-                if show_pipeline[-1]['type'] == 'Pack3DDetInputs':
-                    show_pipeline[-1] = cfg.train_pipeline[i]
-                else:
-                    show_pipeline.append(cfg.train_pipeline[i])
+#     if aug:
+#         show_pipeline = cfg.train_pipeline
+#     else:
+#         show_pipeline = cfg.test_pipeline
+#         for i in range(len(cfg.train_pipeline)):
+#             if cfg.train_pipeline[i]['type'] == 'LoadAnnotations3D':
+#                 show_pipeline.insert(i, cfg.train_pipeline[i])
+#             # Collect data as well as labels
+#             if cfg.train_pipeline[i]['type'] == 'Pack3DDetInputs':
+#                 if show_pipeline[-1]['type'] == 'Pack3DDetInputs':
+#                     show_pipeline[-1] = cfg.train_pipeline[i]
+#                 else:
+#                     show_pipeline.append(cfg.train_pipeline[i])
 
-    train_data_cfg['pipeline'] = show_pipeline
+#     train_data_cfg['pipeline'] = show_pipeline
 
-    return cfg
+#     return cfg
 
 
 # def random_non_object(ratio=0.8):
