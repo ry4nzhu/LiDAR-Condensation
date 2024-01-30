@@ -42,6 +42,7 @@ def random_downsample_loss_rank(data_root, loss_map, td_logs, training_ids):
         print(self_loss, downsample_ratio)
         # random_indices = np.random.randint(pcd.shape[0], size=int(pcd.shape[0] * (1 - downsample_ratio)))
         random_indices = np.random.choice(pcd.shape[0], size=int(pcd.shape[0] * (1 - downsample_ratio)), replace=False)
+        random_indices = np.sort(random_indices)
         pcd_new = np.copy(pcd[random_indices])
         print(pcd.shape, pcd_new.shape)
         original_size.append(pcd.shape[0])
@@ -63,12 +64,12 @@ def object_downsample_loss_rank(data_root, loss_map, td_logs, training_ids):
         calib = load_kitti_calib(calib_file)
         boxes_velo, objs_type = read_objs2velo(label_file, calib['Tr_velo2cam'])
         pcd = np.fromfile(train_file, dtype=np.float32).reshape(-1, 4)
-        print(idx, lidar_path, pcd.shape)
-        obj_points, non_obj_points = seperate_obj_points(pcd, boxes_velo, objs_type)
+        # print(idx, lidar_path, pcd.shape)
+        obj_points, non_obj_points, sorted_object_indices, sorted_non_object_indices = seperate_obj_points(pcd, boxes_velo, objs_type)
 
         self_loss = td_logs[id][0]
-        # downsample_ratio = loss_map.get_downsample_percentage_ranking(idx)
-        downsample_ratio = loss_map.get_downsample_percentage_ranking_rev(idx)
+        downsample_ratio = loss_map.get_downsample_percentage_ranking(idx)
+        # downsample_ratio = loss_map.get_downsample_percentage_ranking_rev(idx)
         print(self_loss, downsample_ratio)
 
         ## remove non-pedestrian, cyclist points
@@ -78,14 +79,24 @@ def object_downsample_loss_rank(data_root, loss_map, td_logs, training_ids):
             remaining_target_point_num = downsampled_shape - obj_points.shape[0]
         else:
             remaining_target_point_num = downsampled_shape
+        non_obj_indices, obj_indices = None, sorted_object_indices
         if remaining_target_point_num > 0:
-            # random_indices = np.random.randint(non_obj_points.shape[0], size=remaining_target_point_num)
             random_indices = np.random.choice(non_obj_points.shape[0], size=remaining_target_point_num, replace=False)
+            non_obj_indices = sorted_non_object_indices[random_indices]
             points_remain = non_obj_points[random_indices]
         else:
-            # random_indices = np.random.randint(obj_points.shape[0], size=downsampled_shape)
             random_indices = np.random.choice(obj_points.shape[0], size=downsampled_shape, replace=False)
+            obj_indices = obj_indices[random_indices]
             obj_points = obj_points[random_indices]
+        if non_obj_indices is not None:
+            obj_indices = np.concatenate((obj_indices, non_obj_indices), axis=None)
+        obj_indices = np.sort(obj_indices)
+
+        # pcd_new = np.copy(pcd)
+        # pcd_new = pcd_new[obj_indices]
+
+        # print(pcd.shape[0], np.unique(obj_indices).shape[0], downsampled_shape)
+
         if points_remain is not None:
             obj_points = np.vstack([obj_points, points_remain])
         pcd_new = np.vstack(obj_points)
@@ -119,7 +130,8 @@ if __name__ == "__main__":
     #     linearLossMapRanking, td_loss, training_sample_ids
     # )
 
+
     object_downsample_loss_rank(
-        "/y/datasets/kitti-downsample/KITTI-0.8-loss-obj-rank-rev/",
+        "/scratch/zmao_root/zmao0/ryanzhu/KITTI-0.8-loss-obj-rank/",
         linearLossMapRanking, td_loss, training_sample_ids
     )
