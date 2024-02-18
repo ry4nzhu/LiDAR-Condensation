@@ -264,9 +264,12 @@ def rotation_matrix(roll, yaw, pitch):
 def get_open3d_bbox(bbox):
     # KITTI format to open3d
     bbox_new = bbox.copy()
-    bbox_new[5] += bbox_new[2] / 2
+    bbox_new[5] += bbox_new[0] / 2
+    # bbox_new[3] += bbox_new[2] / 2
+    bbox_new[0] += 0.2
+    bbox_new[1] += 0.2
     # call open3d api
-    o3d_bbox = o3d.geometry.OrientedBoundingBox(center=bbox_new[3:6], R=rotation_matrix(0, bbox_new[6], 0), extent=bbox_new[0:3])
+    o3d_bbox = o3d.geometry.OrientedBoundingBox(center=bbox_new[3:6], R=rotation_matrix(0, bbox_new[6], 0), extent=bbox_new[[2, 1, 0]])
     return o3d_bbox
 
 
@@ -284,18 +287,23 @@ def seperate_obj_points(points, boxes, box_types):
     # create boxes
     #--------------------------------------------------------------
     boxes_o3d = []
+    boxes_old = []
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(points[:, :3])
+    all_indices = np.arange(points.shape[0])
+    mask = np.ones(all_indices.size, dtype=bool)
+
     all_object_indices = []
     for i in range(boxes.shape[0]):
         dim = boxes[i]
-        box_o3d = create_box_from_dim(dim)
+        # print(dim)
+        box_o3d_old = create_box_from_dim(dim)
+        boxes_old.append(box_o3d_old)
         box_o3d = get_open3d_bbox(dim)
         boxes_o3d.append(box_o3d)
 
-        if box_types[i] in [3, 5]: # Pedestrian, Cyclist
+        if box_types[i] in [0, 3, 5]: # 3: Pedestrian,, 5 Cyclist , 5
             # print(dim, box_types[i])
-            
             indices = box_o3d.get_point_indices_within_bounding_box(pcd.points)
             # print(indices)
             all_object_indices += indices
@@ -303,8 +311,51 @@ def seperate_obj_points(points, boxes, box_types):
     if len(all_object_indices) > 0:
         obj_points = points[np.array(all_object_indices)]
         non_obj_points = np.delete(points, np.array(all_object_indices), axis=0)
+        sorted_object_indices = np.sort(np.array(all_object_indices))
+        mask[sorted_object_indices] = False
+        # sorted_non_object_indices = all_indices[mask]
     else:
         obj_points = np.zeros([0, 4], dtype=np.float32)
+        sorted_object_indices = np.array([], dtype=int)
         non_obj_points = points
 
-    return obj_points, non_obj_points
+    sorted_non_object_indices = all_indices[mask]
+    
+
+    return obj_points, non_obj_points, sorted_object_indices, sorted_non_object_indices, boxes_o3d, boxes_old
+
+
+
+def draw_open3d(pointclouds, gt_bboxes=None, pred_bboxes=None, show=True, save=""):
+    # TODO: paint different pcd in various colors?
+    pcds = []
+    colors = [[0, 0, 1], [0, 1, 0.3], [0.0, 0.4, 0.5], [0.1, 0.7, 0.4], [0, 0.8, 0.5],
+              [0.9, 1, 1], [1, 1, 0], [1, 0.5, 0.5], [1, 0, 0.5], [1, 0, 1], [1, 0, 0.9], [1, 0.8, 0],
+              [0.7, 0.6, 0.5], [0.7, 0.7, 0], [0.1, 0.1, 0.9], [1, 0.81, 0],
+              [0, 0.4, 1], [0, 1, 0.3], [0.0, 0.4, 0.5], [0.1, 0.7, 0.4], [0, 0.8, 0.5],
+              [0.9, 1, 1], [1, 1, 0], [1, 0.5, 0.5], [1, 0, 0.5], [1, 0, 1], [1, 0, 0.9], [1, 0.8, 0],
+              [0.7, 0.6, 0.5], [0.7, 0.7, 0], [0.1, 0.1, 0.9], [1, 0.81, 0],
+              [0, 0.4, 1], [0, 1, 0.3], [0.0, 0.4, 0.5], [0.1, 0.7, 0.4], [0, 0.8, 0.5],
+              [0.9, 1, 1], [1, 1, 0], [1, 0.5, 0.5], [1, 0, 0.5], [1, 0, 1], [1, 0, 0.9], [1, 0.8, 0],
+              [0.7, 0.6, 0.5], [0.7, 0.7, 0], [0.1, 0.1, 0.9], [1, 0.81, 0]]  # blue, green, orange, red
+    for pcl in pointclouds:
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(pcl[:, :3])
+        pcd.paint_uniform_color(colors.pop(0))  # colors.pop(0)
+        pcds.append(pcd)
+
+    bboxes = []
+    if gt_bboxes is not None:
+        bboxes = gt_bboxes
+    if pred_bboxes is not None:
+        bboxes = bboxes + pred_bboxes
+    # location = labels[:, 3:6]
+    # extent = labels[:, 6:9] * 2
+    # rotation = labels[:, 9:12] * np.pi / 180
+    # R = rotation_matrix(rotation[:, 0], rotation[:, 1], rotation[:, 2])
+    # for i in range(labels.shape[0]):
+    #     bbox = o3d.geometry.OrientedBoundingBox(center=location[i, :], R=R[:, :, i], extent=extent[i, :])
+    #     bbox.color = [1, 0, 0]
+    #     bboxes.append(bbox)
+
+    o3d.visualization.draw_geometries(bboxes + pcds)

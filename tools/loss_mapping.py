@@ -16,12 +16,12 @@ class LinearLossMap():
     
 
 class LinearLossMapRanking():
-    def __init__(self, max_downsample_ratio, max_rank, min_rank=0):
+    def __init__(self, max_downsample_ratio, max_rank, min_rank=0, min_downsample_ratio=0):
         self.max_downsample_ratio = max_downsample_ratio
         self.min_rank = min_rank
         self.max_rank = max_rank
 
-        self.downsample_ratio = np.linspace(max_downsample_ratio, 0, max_rank)
+        self.downsample_ratio = np.linspace(max_downsample_ratio, min_downsample_ratio, max_rank)
 
     def get_downsample_percentage_ranking(self, loss_rank):
         return self.downsample_ratio[loss_rank - self.min_rank]
