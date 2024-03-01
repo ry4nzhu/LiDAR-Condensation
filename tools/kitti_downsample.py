@@ -7,10 +7,12 @@ sys.path.append(root)
 import open3d as o3d
 from collections import defaultdict
 from util import load_kitti_calib, read_objs2velo, seperate_obj_points, draw_open3d
+from pillarwise import Pillars
 
-data_root = '/y/datasets/kitti-downsample/'
-data_root = '/nfs/turbo/coe-zmao/ryanzhu/'
+data_root = '/y/datasets/' # kitti-downsample/
+# data_root = '/nfs/turbo/coe-zmao/ryanzhu/'
 dataset_folder = 'KITTI-0.8-rand-obj-ped+cyc/'
+dataset_folder = 'KITTI/'
 RANDOM_SEED = 1000
 np.random.seed(RANDOM_SEED)
 
@@ -97,8 +99,24 @@ def random_domsample_objects(ratio=0.8):
                 pcd_new.tofile(f)
 
 
+def random_pillar_downsample(ratio=0.8):
+    lidar_path = os.path.join(data_root, dataset_folder, 'training/velodyne')
+    label_path = os.path.join(data_root, dataset_folder, 'training/label_2')
+    calib_path = os.path.join(data_root, dataset_folder, 'training/calib')
+    with open(os.path.join(data_root, dataset_folder, 'ImageSets/train.txt'), 'r') as f:
+        train_ids = f.readlines()
+        for train_id in train_ids:
+            # print(train_id, type(train_id))
+            id = int(train_id)
+            train_file = os.path.join(lidar_path, "%06d.bin"%id)
+            pcd = np.fromfile(train_file, dtype=np.float32).reshape(-1, 4)
+            lidar = np.copy(pcd)
+            pillars = Pillars(lidar, point_cloud_range=[0, -40, -3, 70.4, 40, 1], voxel_size=[0.16, 0.16, 4])
+            pillars.create_pillars()
+
 
 if __name__ == "__main__":
     
-    random_downsample(ratio=0.8)
-    random_domsample_objects(ratio=0.8)
+    # random_downsample(ratio=0.8)
+    # random_domsample_objects(ratio=0.8)
+    random_pillar_downsample(0.8)
